@@ -1,3 +1,4 @@
+# Julian Getz, Noah Rosenthal, Ari Latimer
 import requests
 
 TMDB_API_KEY = 'c9f38a087f579feb4174d8e353fe773f'
