@@ -18,31 +18,42 @@ def visualize_omdb():
     rows = cur.fetchall()
     conn.close()
 
-    # Separate the data into lists for plotting
     years = [row[0] for row in rows]
     counts = [row[1] for row in rows]
 
-    # Print the results to verify
-    print("OMDb Movies per Year:")
-    for row in rows:
-        print(f"Year: {row[0]}, Count: {row[1]}")
+    # Try converting years to int for sorting and nicer ticks if possible
+    try:
+        years = [int(y) for y in years]
+    except ValueError:
+        pass
 
-    # Create a bar chart
+    print("OMDb Movies per Year:")
+    for y, c in zip(years, counts):
+        print(f"Year: {y}, Count: {c}")
+
     plt.figure(figsize=(10, 6))
     plt.bar(years, counts, color='blue')
     plt.xlabel('Year')
     plt.ylabel('Number of Movies')
     plt.title('Number of Movies Released Each Year (OMDb Data)')
-    plt.xticks(rotation=45)
+
+    # Reduce the number of x-ticks if there are many years
+    if len(years) > 20:
+        # Show every 5th year as a tick
+        tick_positions = range(0, len(years), 5)
+        tick_labels = [years[i] for i in tick_positions]
+        plt.xticks(tick_labels, rotation=45, ha='right')
+    else:
+        # If there are not many years, show them all, just rotate for clarity
+        plt.xticks(years, rotation=45, ha='right')
+
     plt.tight_layout()
     plt.show()
-
 
 def visualize_tmdb_languages():
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
 
-    # Movies per language from TMDB data
     cur.execute("""
         SELECT l.language_code, COUNT(m.tmdb_id) as movie_count
         FROM movies_tmdb m
@@ -54,12 +65,10 @@ def visualize_tmdb_languages():
     rows = cur.fetchall()
     conn.close()
 
-    # Print results
     print("\nTMDB Movies per Language:")
     for row in rows:
         print(f"Language: {row[0]}, Count: {row[1]}")
 
-    # Create a bar chart
     language_codes = [r[0] for r in rows]
     counts = [r[1] for r in rows]
 
@@ -72,12 +81,10 @@ def visualize_tmdb_languages():
     plt.tight_layout()
     plt.show()
 
-
 def visualize_tmdb_genres():
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
 
-    # Frequency of different genres from the TMDB data
     cur.execute("""
         SELECT g.genre_name, COUNT(mg.tmdb_id) AS CountPerGenre
         FROM movie_genres_tmdb mg
@@ -89,12 +96,10 @@ def visualize_tmdb_genres():
     rows = cur.fetchall()
     conn.close()
 
-    # Print results
     print("\nTMDB Movies per Genre:")
     for row in rows:
         print(f"Genre: {row[0]}, Count: {row[1]}")
 
-    # Create a bar chart for TMDB genres
     genres = [r[0] for r in rows]
     counts = [r[1] for r in rows]
 
@@ -106,7 +111,6 @@ def visualize_tmdb_genres():
     plt.xticks(rotation=45)
     plt.tight_layout()
     plt.show()
-
 
 if __name__ == "__main__":
     visualize_omdb()
