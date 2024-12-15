@@ -1,11 +1,12 @@
 import sqlite3
 import requests
+#used chat gpt to help cretae functions and visualizations
 
 DB_FILE = 'movies.db'
 
 # ----- OMDb API Details -----
 OMDB_API_KEY = '431128c6'
-OMDB_SEARCH_TERM = 'Comedy'
+OMDB_SEARCH_TERM = 'Comedy' #change up to diversify
 OMDB_BATCH_SIZE = 10
 
 # ----- TMDB API Details -----
