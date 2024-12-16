@@ -1,12 +1,12 @@
 import sqlite3
 import requests
-#used chat gpt to help cretae functions and visualizations
+#used chat GPT for help writing funcitons, gathering data from APIs and creating visualizations
 
 DB_FILE = 'movies.db'
 
 # ----- OMDb API Details -----
 OMDB_API_KEY = '431128c6'
-OMDB_SEARCH_TERM = 'Comedy' #change up to diversify
+OMDB_SEARCH_TERM = 'Comedy'
 OMDB_BATCH_SIZE = 10
 
 # ----- TMDB API Details -----
@@ -25,7 +25,7 @@ def create_omdb_table(conn):
         # Add the 'imdbRating' column
         conn.execute("ALTER TABLE movies ADD COLUMN imdbRating REAL;")
         conn.commit()
-    # No need to create the table if it exists
+    # Ensure the table exists
     conn.execute('''CREATE TABLE IF NOT EXISTS movies (
         imdbID TEXT PRIMARY KEY,
         Title TEXT,

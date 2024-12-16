@@ -2,6 +2,8 @@ import sqlite3
 import matplotlib.pyplot as plt
 import csv
 from datetime import datetime
+import pandas as pd
+import re  # Import the regular expressions module
 
 DB_FILE = 'movies.db'
 
@@ -22,39 +24,67 @@ def visualize_omdb():
     years = [row[0] for row in rows]
     counts = [row[1] for row in rows]
 
-    # Convert years to integers if possible, to ensure sorting is correct
-    try:
-        years = [int(y) for y in years]
-    except ValueError:
-        # If conversion fails, just leave them as strings
-        pass
+    # Initialize a dictionary to hold cleaned year counts
+    cleaned_year_counts = {}
 
-    print("OMDb Movies per Year:")
-    for y, c in zip(years, counts):
+    # Regular expression to extract the first four-digit year
+    year_pattern = re.compile(r'(\d{4})')
+
+    for year, count in zip(years, counts):
+        match = year_pattern.match(year)
+        if match:
+            cleaned_year = int(match.group(1))
+            if cleaned_year in cleaned_year_counts:
+                cleaned_year_counts[cleaned_year] += count
+            else:
+                cleaned_year_counts[cleaned_year] = count
+        else:
+            # Handle cases where the year doesn't start with four digits
+            # For example, '1950–1955' or '1967–'
+            # Extract the first occurrence of a four-digit number
+            match = year_pattern.search(year)
+            if match:
+                cleaned_year = int(match.group(1))
+                if cleaned_year in cleaned_year_counts:
+                    cleaned_year_counts[cleaned_year] += count
+                else:
+                    cleaned_year_counts[cleaned_year] = count
+            else:
+                # If no four-digit year is found, skip this entry
+                print(f"Unrecognized year format: {year}")
+
+    # Convert the dictionary to a sorted list of tuples
+    sorted_year_counts = sorted(cleaned_year_counts.items())
+
+    # Unpack the sorted tuples into separate lists
+    cleaned_years, cleaned_counts = zip(*sorted_year_counts) if sorted_year_counts else ([], [])
+
+    print("OMDb Movies per Year (Cleaned):")
+    for y, c in zip(cleaned_years, cleaned_counts):
         print(f"Year: {y}, Count: {c}")
 
     # Write calculated data to CSV
-    with open("omdb_movies_per_year.csv", "w", newline='', encoding='utf-8') as f:
+    with open("omdb_movies_per_year_cleaned.csv", "w", newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(["Year", "Count"])
-        for y, c in zip(years, counts):
+        for y, c in zip(cleaned_years, cleaned_counts):
             writer.writerow([y, c])
 
     plt.figure(figsize=(12, 6))
-    plt.bar(years, counts, color='blue')
+    plt.bar(cleaned_years, cleaned_counts, color='blue')
     plt.xlabel('Year')
     plt.ylabel('Number of Movies')
     plt.title('Number of Movies Released Each Year (OMDb Data)')
 
     # Reduce the number of x-ticks if there are many years
-    if len(years) > 20:
+    if len(cleaned_years) > 20:
         # Show every 5th year as a tick
-        tick_positions = range(0, len(years), 5)
-        tick_labels = [years[i] for i in tick_positions]
+        tick_positions = range(0, len(cleaned_years), 5)
+        tick_labels = [cleaned_years[i] for i in tick_positions]
         plt.xticks(tick_labels, rotation=45, ha='right')
     else:
         # If there are not many years, show them all, just rotate for clarity
-        plt.xticks(years, rotation=45, ha='right')
+        plt.xticks(cleaned_years, rotation=45, ha='right')
 
     plt.tight_layout()
     plt.show()
@@ -200,22 +230,35 @@ def visualize_omdb_ratings():
     ratings = [float(row[0]) for row in rows if row[0] != 'N/A']
 
     print("\nOMDb Movies by IMDb Rating:")
-    print(f"Total Ratings Available: {len(ratings)}")
+    
+    # Categorize ratings into bins (0-1, 1-2, ..., 9-10)
+    bins = list(range(0, 11))  # 0 to 10
+    labels = [f"{i}-{i+1}" for i in bins[:-1]]
+    df = pd.DataFrame(ratings, columns=['imdbRating'])
+    df['RatingBin'] = pd.cut(df['imdbRating'], bins=bins, labels=labels, right=False, include_lowest=True)
+    rating_counts = df['RatingBin'].value_counts().sort_index()
+
+    for bin_label, count in rating_counts.items():
+        print(f"IMDb Rating {bin_label}: {count}")
+
+    total_ratings = len(ratings)
+    print(f"Total Ratings Available: {total_ratings}")
 
     # Write calculated data to CSV
     with open("omdb_movies_ratings.csv", "w", newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
-        writer.writerow(["IMDb Rating"])
-        for rating in ratings:
-            writer.writerow([rating])
+        writer.writerow(["IMDb Rating Bin", "Count"])
+        for bin_label, count in rating_counts.items():
+            writer.writerow([bin_label, count])
 
     # Create a histogram
     plt.figure(figsize=(12, 6))
-    plt.hist(ratings, bins=10, color='gold', edgecolor='black')
+    plt.hist(ratings, bins=bins, color='gold', edgecolor='black', align='left', rwidth=0.8)
     plt.xlabel('IMDb Rating')
     plt.ylabel('Number of Movies')
     plt.title('Distribution of IMDb Ratings (OMDb Data)')
-    plt.xticks(range(0, 11))  # Ratings typically range from 0 to 10
+    plt.xticks(bins)
+    plt.grid(axis='y', alpha=0.75)
     plt.tight_layout()
     plt.show()
 
